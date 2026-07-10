@@ -1,4 +1,4 @@
-name: CI - Build & Push Docker Image
+name: CI-CD to GKE
 
 on:
   push:
@@ -12,15 +12,17 @@ permissions:
 env:
   PROJECT_ID: project-e88d1c23-e44c-4d58-8dd
   REGION: us-east1
-  REPOSITORY: ankit-repo
+  GAR_REPOSITORY: ankit-repo
   IMAGE_NAME: nginx-demo
+  CLUSTER_NAME: ankit-cluster
+  CLUSTER_LOCATION: us-east1-b
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Source
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Authenticate to Google Cloud
@@ -30,32 +32,40 @@ jobs:
           workload_identity_provider: projects/198436119624/locations/global/workloadIdentityPools/github-pool/providers/github-provider
           service_account: git-hub-access-sa@project-e88d1c23-e44c-4d58-8dd.iam.gserviceaccount.com
 
-      - name: Setup Cloud SDK
+      - name: Setup gcloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Configure Docker
+      - name: Configure Docker Authentication
         run: |
           gcloud auth configure-docker us-east1-docker.pkg.dev --quiet
 
       - name: Build Docker Image
         run: |
-          docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:${{ github.sha }} .
+          docker build \
+            -t us-east1-docker.pkg.dev/$PROJECT_ID/$GAR_REPOSITORY/$IMAGE_NAME:${{ github.sha }} .
 
       - name: Push Docker Image
         run: |
-          docker push $REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:${{ github.sha }}
-          
+          docker push \
+            us-east1-docker.pkg.dev/$PROJECT_ID/$GAR_REPOSITORY/$IMAGE_NAME:${{ github.sha }}
+
       - name: Get GKE Credentials
         uses: google-github-actions/get-gke-credentials@v2
         with:
-          cluster_name: ankit-cluster
-          location: us-east1-b
+          cluster_name: ${{ env.CLUSTER_NAME }}
+          location: ${{ env.CLUSTER_LOCATION }}
 
-      - name: Replace Image Tag
+      - name: Update Deployment Image
         run: |
-          sed -i "s|:latest|:${{ github.sha }}|g" deployment.yaml
+          kubectl set image deployment/nginx-demo \
+          nginx-demo=us-east1-docker.pkg.dev/$PROJECT_ID/$GAR_REPOSITORY/$IMAGE_NAME:${{ github.sha }}
 
-      - name: Deploy to GKE
+      - name: Wait for Rollout
         run: |
-          kubectl apply -f deployment.yaml
-          kubectl apply -f service.yaml
+          kubectl rollout status deployment/nginx-demo --timeout=180s
+
+      - name: Verify Deployment
+        run: |
+          kubectl get deployment nginx-demo
+          kubectl get pods
+          kubectl get svc
