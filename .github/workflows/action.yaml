@@ -44,3 +44,18 @@ jobs:
       - name: Push Docker Image
         run: |
           docker push $REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:${{ github.sha }}
+          
+      - name: Get GKE Credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ankit-cluster
+          location: us-east1-b
+
+      - name: Replace Image Tag
+        run: |
+          sed -i "s|:latest|:${{ github.sha }}|g" deployment.yaml
+
+      - name: Deploy to GKE
+        run: |
+          kubectl apply -f deployment.yaml
+          kubectl apply -f service.yaml
