@@ -1,35 +1,46 @@
-name: Build and Push Docker Image
+name: CI - Build & Push Docker Image
 
 on:
   push:
-    branches: [ "main" ]  # ⚠️ Note: If your default branch is 'master', change "main" to "master"
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: project-e88d1c23-e44c-4d58-8dd
+  REGION: us-east1
+  REPOSITORY: ankit-repo
+  IMAGE_NAME: nginx-demo
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Clone the repository files onto the GitHub runner
-    - name: Check out the repo
-      uses: actions/checkout@v4
+      - name: Checkout Source
+        uses: actions/checkout@v4
 
-    # Step 2: Authenticate with Docker Hub using your GitHub Secrets
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/198436119624/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: git-hub-access-sa@project-e88d1c23-e44c-4d58-8dd.iam.gserviceaccount.com
 
-    # Step 3: Set up Docker Buildx for optimization and caching capabilities
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Setup Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
 
-    # Step 4: Build the container image from the Dockerfile and push it out
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v6
-      with:
-        context: .
-        push: true
-        tags: |
-          ${{ secrets.DOCKER_HUB_USERNAME }}/my-test-app:latest
-          ${{ secrets.DOCKER_HUB_USERNAME }}/my-test-app:${{ github.sha }}
+      - name: Configure Docker
+        run: |
+          gcloud auth configure-docker us-east1-docker.pkg.dev --quiet
+
+      - name: Build Docker Image
+        run: |
+          docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:${{ github.sha }} .
+
+      - name: Push Docker Image
+        run: |
+          docker push $REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:${{ github.sha }}
