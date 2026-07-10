@@ -10,10 +10,7 @@ permissions:
   id-token: write
 
 env:
-  PROJECT_ID: project-e88d1c23-e44c-4d58-8dd
-  REGION: us-east1
-  GAR_REPOSITORY: ankit-repo
-  IMAGE_NAME: nginx-demo
+  IMAGE_NAME: us-east1-docker.pkg.dev/project-e88d1c23-e44c-4d58-8dd/ankit-repo/nginx-demo
   CLUSTER_NAME: ankit-cluster
   CLUSTER_LOCATION: us-east1-b
 
@@ -39,15 +36,17 @@ jobs:
         run: |
           gcloud auth configure-docker us-east1-docker.pkg.dev --quiet
 
+      - name: Generate Short SHA
+        run: |
+          echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
       - name: Build Docker Image
         run: |
-          docker build \
-            -t us-east1-docker.pkg.dev/$PROJECT_ID/$GAR_REPOSITORY/$IMAGE_NAME:${{ github.sha }} .
+          docker build -t $IMAGE_NAME:$SHORT_SHA .
 
       - name: Push Docker Image
         run: |
-          docker push \
-            us-east1-docker.pkg.dev/$PROJECT_ID/$GAR_REPOSITORY/$IMAGE_NAME:${{ github.sha }}
+          docker push $IMAGE_NAME:$SHORT_SHA
 
       - name: Get GKE Credentials
         uses: google-github-actions/get-gke-credentials@v2
@@ -55,17 +54,40 @@ jobs:
           cluster_name: ${{ env.CLUSTER_NAME }}
           location: ${{ env.CLUSTER_LOCATION }}
 
-      - name: Update Deployment Image
+      - name: Verify Cluster Connection
         run: |
-          kubectl set image deployment/nginx-demo \
-          nginx-demo=us-east1-docker.pkg.dev/$PROJECT_ID/$GAR_REPOSITORY/$IMAGE_NAME:${{ github.sha }}
+          kubectl get nodes
 
-      - name: Wait for Rollout
+      - name: Deploy Application
         run: |
+          if kubectl get deployment nginx-demo >/dev/null 2>&1; then
+            echo "Deployment exists. Updating image..."
+
+            kubectl set image deployment/nginx-demo \
+              nginx-demo=$IMAGE_NAME:$SHORT_SHA
+
+          else
+            echo "Deployment does not exist. Creating..."
+
+            kubectl apply -f deployment.yaml
+            kubectl apply -f service.yaml
+
+            kubectl set image deployment/nginx-demo \
+              nginx-demo=$IMAGE_NAME:$SHORT_SHA
+          fi
+
+          echo "Waiting for rollout..."
           kubectl rollout status deployment/nginx-demo --timeout=180s
+
+      - name: Verify Running Image
+        run: |
+          echo "Current Image:"
+          kubectl get deployment nginx-demo \
+            -o=jsonpath='{.spec.template.spec.containers[0].image}'
+          echo ""
 
       - name: Verify Deployment
         run: |
           kubectl get deployment nginx-demo
-          kubectl get pods
+          kubectl get pods -o wide
           kubectl get svc
