@@ -10,7 +10,7 @@ permissions:
   id-token: write
 
 env:
-  IMAGE_NAME: us-east1-docker.pkg.dev/project-e88d1c23-e44c-4d58-8dd/om-app-repo/nginx-demo
+  IMAGE_NAME: us-central1-docker.pkg.dev/project-e88d1c23-e44c-4d58-8dd/om-app-repo/nginx-demo
   CLUSTER_NAME: gke-cluster
   CLUSTER_LOCATION: us-central1-a
 
@@ -34,7 +34,7 @@ jobs:
 
       - name: Configure Docker Authentication
         run: |
-          gcloud auth configure-docker us-east1-docker.pkg.dev --quiet
+          gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
       - name: Generate Short SHA
         run: |
