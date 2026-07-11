@@ -10,9 +10,9 @@ permissions:
   id-token: write
 
 env:
-  IMAGE_NAME: us-east1-docker.pkg.dev/project-e88d1c23-e44c-4d58-8dd/ankit-repo/nginx-demo
-  CLUSTER_NAME: ankit-cluster
-  CLUSTER_LOCATION: us-east1-b
+  IMAGE_NAME: us-east1-docker.pkg.dev/project-e88d1c23-e44c-4d58-8dd/om-app-repo/nginx-demo
+  CLUSTER_NAME: gke-cluster
+  CLUSTER_LOCATION: us-central1-a
 
 jobs:
   build-and-deploy:
