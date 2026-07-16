@@ -11,28 +11,31 @@
 
 <body>
 
+    <!-- =========================
+            NAVBAR
+    ========================== -->
+
     <nav>
 
         <div class="logo">
-
             <img src="images/logo.jpeg" alt="Chai Politics Logo">
-
             <span>CHAI POLITICS</span>
-
         </div>
 
         <ul>
-
             <li><a href="#">Home</a></li>
             <li><a href="#">Menu</a></li>
             <li><a href="#">About</a></li>
             <li><a href="#">Contact</a></li>
-
         </ul>
 
     </nav>
 
     <div class="container">
+
+        <!-- =========================
+                HERO SECTION
+        ========================== -->
 
         <section class="hero">
 
@@ -49,6 +52,10 @@
             </a>
 
         </section>
+
+        <!-- =========================
+                MENU
+        ========================== -->
 
         <section class="menu-section">
 
@@ -102,6 +109,10 @@
 
         </section>
 
+        <!-- =========================
+                DEVOPS
+        ========================== -->
+
         <section class="devops">
 
             <h2>Application Deployment</h2>
@@ -114,7 +125,7 @@
                 </div>
 
                 <div class="box">
-                    <h3>⚙ CI/CD</h3>
+                    <h3>⚙️ CI/CD</h3>
                     <p>GitHub Actions</p>
                 </div>
 
@@ -132,6 +143,38 @@
 
         </section>
 
+        <!-- =========================
+            DEPLOYMENT INFO
+        ========================== -->
+
+        <section class="deployment-info">
+
+            <h2>Live Deployment Information</h2>
+
+            <div class="deploy-card">
+
+                <p><strong>Application :</strong> <span id="app">Loading...</span></p>
+
+                <p><strong>Version :</strong> <span id="version">Loading...</span></p>
+
+                <p><strong>Docker Image :</strong> <span id="imageTag">Loading...</span></p>
+
+                <p><strong>Git Commit :</strong> <span id="commit">Loading...</span></p>
+
+                <p><strong>Environment :</strong> <span id="environment">Loading...</span></p>
+
+                <p><strong>Cluster :</strong> <span id="cluster">Loading...</span></p>
+
+                <p><strong>Deployment Time :</strong> <span id="deployedAt">Loading...</span></p>
+
+            </div>
+
+        </section>
+
+        <!-- =========================
+                FOOTER
+        ========================== -->
+
         <footer>
 
             ❤️ Made with Love by Chai Politics
@@ -139,6 +182,39 @@
         </footer>
 
     </div>
+
+    <!-- =========================
+            VERSION SCRIPT
+    ========================== -->
+
+    <script>
+
+        fetch("version.json")
+            .then(response => response.json())
+            .then(data => {
+
+                document.getElementById("app").innerText = data.application;
+                document.getElementById("version").innerText = data.version;
+                document.getElementById("imageTag").innerText = data.imageTag;
+                document.getElementById("commit").innerText = data.commit;
+                document.getElementById("environment").innerText = data.environment;
+                document.getElementById("cluster").innerText = data.cluster;
+                document.getElementById("deployedAt").innerText = data.deployedAt;
+
+            })
+            .catch(() => {
+
+                document.getElementById("app").innerText = "Unavailable";
+                document.getElementById("version").innerText = "Unavailable";
+                document.getElementById("imageTag").innerText = "Unavailable";
+                document.getElementById("commit").innerText = "Unavailable";
+                document.getElementById("environment").innerText = "Unavailable";
+                document.getElementById("cluster").innerText = "Unavailable";
+                document.getElementById("deployedAt").innerText = "Unavailable";
+
+            });
+
+    </script>
 
 </body>
 

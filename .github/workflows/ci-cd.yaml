@@ -43,6 +43,20 @@ jobs:
         run: |
           echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
+      - name: Generate version.json
+        run: |
+          cat > app/version.json <<EOF
+          {
+            "application":"Chai Politics",
+            "version":"1.0.${{ github.run_number }}",
+            "imageTag":"$SHORT_SHA",
+            "commit":"$SHORT_SHA",
+            "environment":"Production",
+            "cluster":"$CLUSTER_NAME",
+            "deployedAt":"$(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+          }
+          EOF
+
       - name: Build Docker Image
         run: |
           docker build -t $IMAGE_NAME:$SHORT_SHA .
@@ -81,6 +95,10 @@ jobs:
 
           echo "Waiting for rollout..."
           kubectl rollout status deployment/nginx-demo --timeout=180s
+      
+      - name: Show version.json
+        run: |
+          cat app/version.json
 
       - name: Verify Running Image
         run: |

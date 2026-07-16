@@ -1,0 +1,10 @@
+{
+  "app": "Chai Politics",
+  "version": "v1.0.0",
+  "imageTag": "local",
+  "gitCommit": "local",
+  "buildTime": "Local Build",
+  "environment": "Development",
+  "cluster": "GKE",
+  "namespace": "default"
+}
