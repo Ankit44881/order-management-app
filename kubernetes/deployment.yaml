@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: nginx-demo
-        image: us-east1-docker.pkg.dev/project-e88d1c23-e44c-4d58-8dd/ankit-repo/nginx-demo:385e67330305ca1e1334f92f3af05611cc6d51ea
+        image: nginx:alpine
 
         ports:
         - containerPort: 80

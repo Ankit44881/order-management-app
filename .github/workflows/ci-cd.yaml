@@ -15,6 +15,7 @@ env:
   IMAGE_NAME: us-central1-docker.pkg.dev/project-e88d1c23-e44c-4d58-8dd/om-app-repo/nginx-demo
   CLUSTER_NAME: gke-cluster
   CLUSTER_LOCATION: us-central1-a
+  K8S_PATH: kubernetes
 
 jobs:
   build-and-deploy:
@@ -71,8 +72,8 @@ jobs:
           else
             echo "Deployment does not exist. Creating..."
 
-            kubectl apply -f deployment.yaml
-            kubectl apply -f service.yaml
+            kubectl apply -f $K8S_PATH/deployment.yaml
+            kubectl apply -f $K8S_PATH/service.yaml
 
             kubectl set image deployment/nginx-demo \
               nginx-demo=$IMAGE_NAME:$SHORT_SHA
