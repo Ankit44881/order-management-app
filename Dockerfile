@@ -2,8 +2,10 @@ FROM nginx:alpine
 
 WORKDIR /usr/share/nginx/html
 
-COPY . .
+COPY app/ .
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+HEALTHCHECK CMD wget --spider http://localhost || exit 1
+
+CMD ["nginx","-g","daemon off;"]
