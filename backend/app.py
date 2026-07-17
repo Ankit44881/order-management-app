@@ -9,7 +9,7 @@ menu = [
     {"name": "Masala Tea", "price": 20, "category": "tea", "emoji": "☕", "description": "Fresh Indian Masala Tea"},
     {"name": "Ginger Tea", "price": 20, "category": "tea", "emoji": "🫖", "description": "Hot Adrak Chai"},
     {"name": "Veg Momos", "price": 40, "category": "Momos", "emoji": "🥟", "description": "Steamed / Fried"},
-    {"name": "Paneer Momos", "price": 60, "category": "Momos", "emoji": "🧀", "description": "Cheesy Paneer Filling"},
+    {"name": "Paneer Momos", "price": 80, "category": "Momos", "emoji": "🧀", "description": "Cheesy Paneer Filling"},
     {"name": "Veg Burger", "price": 60, "category": "snacks", "emoji": "🍔", "description": "Fresh Veg Patty Burger"},
     {"name": "Cheese Maggi", "price": 50, "category": "snacks", "emoji": "🍜", "description": "Loaded with Cheese"},
     {"name": "White Sauce Pasta", "price": 90, "category": "chinese", "emoji": "🍝", "description": "Creamy Italian Style"},
