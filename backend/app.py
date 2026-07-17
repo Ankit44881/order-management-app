@@ -22,12 +22,16 @@ menu = [
 # Health Check API
 # -------------------------
 
+# -------------------------
+# Health Check API (Handles both / and /health)
+# -------------------------
+
+@app.route("/")
 @app.route("/health")
 def health():
     return jsonify({
         "status": "UP"
     })
-
 # -------------------------
 # Menu API
 # -------------------------
