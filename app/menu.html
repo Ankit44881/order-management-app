@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chai Politics Menu</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <!-- =========================
+            NAVBAR
+    ========================== -->
+    <nav>
+        <div class="logo">
+            <img src="images/logo.jpeg" alt="Chai Politics Logo">
+            <span>CHAI POLITICS</span>
+        </div>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="menu.html" style="color:#ff6600;">Menu</a></li>
+            <li><a href="deployment.html">Deployment</a></li>
+        </ul>
+    </nav>
+
+    <!-- =========================
+            MENU SECTION
+    ========================== -->
+    <div class="container">
+        <section class="menu-section">
+            <h2>🍽️ Our Special Menu</h2>
+            
+            <!-- Category Filter Buttons -->
+            <div style="text-align:center; margin:30px 0;">
+                <button class="btn" onclick="filterMenu('all')">All Items</button>
+                <button class="btn" onclick="filterMenu('tea')">☕ Tea</button>
+                <button class="btn" onclick="filterMenu('snacks')">🥟 Snacks</button>
+                <button class="btn" onclick="filterMenu('Momos')">🥟 Momos</button>
+                <button class="btn" onclick="filterMenu('chinese')">🍝 Chinese</button>
+            </div>
+
+            <!-- Dynamic Cards Container -->
+            <div class="cards" id="menu-container">
+                <p style="text-align: center; color: #666; grid-column: 1/-1;">Brewing conversation items from backend...</p>
+            </div>
+        </section>
+
+        <div style="text-align:center; margin-top:50px;">
+            <a href="index.html" class="btn">
+                ⬅ Back to Home
+            </a>
+        </div>
+    </div>
+
+    <!-- =========================
+        DYNAMIC API INTEGRATION
+    ========================== -->
+    <script>
+        let localMenuItems = [];
+
+        // Dynamic fetch using relative path (Ingress rule handles routing to backend)
+        fetch("/api/menu")
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Network response was not ok");
+                }
+                return response.json();
+            })
+            .then(data => {
+                localMenuItems = data;
+                renderMenu(localMenuItems);
+            })
+            .catch(error => {
+                console.error("Error fetching dynamic menu matrix:", error);
+                document.getElementById("menu-container").innerHTML = `
+                    <p style="text-align: center; color: red; grid-column: 1/-1; font-weight: bold;">
+                        Failed to load dynamic data from backend API!
+                    </p>
+                `;
+            });
+
+        // Function to build elements dynamically matching style.css structural patterns
+        function renderMenu(items) {
+            const container = document.getElementById("menu-container");
+            container.innerHTML = "";
+
+            if (items.length === 0) {
+                container.innerHTML = `<p style="text-align: center; color: #666; grid-column: 1/-1;">No items found in this category.</p>`;
+                return;
+            }
+
+            items.forEach(item => {
+                const card = document.createElement("div");
+                card.className = "card";
+                
+                card.innerHTML = `
+                    <div class="emoji">${item.emoji || '🍽️'}</div>
+                    <h3>${item.name}</h3>
+                    <p>${item.description || 'Authentic political dialogue starter'}</p>
+                    <span>₹${item.price}</span>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Filter engine matching dynamic keys mapping
+        function filterMenu(category) {
+            if (category === 'all') {
+                renderMenu(localMenuItems);
+            } else {
+                const filtered = localMenuItems.filter(item => 
+                    item.category && item.category.toLowerCase() === category.toLowerCase()
+                );
+                renderMenu(filtered);
+            }
+        }
+    </script>
+</body>
+
+</html>

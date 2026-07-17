@@ -1,18 +1,18 @@
-name: CI-CD to GKE
+name: CI-CD to GKE (Ingress Stack)
 
 on:
   push:
     branches:
       - main
-
   workflow_dispatch:
-    
+
 permissions:
   contents: read
   id-token: write
 
 env:
-  IMAGE_NAME: us-central1-docker.pkg.dev/project-e88d1c23-e44c-4d58-8dd/om-app-repo/nginx-demo
+  FRONTEND_IMAGE: us-central1-docker.pkg.dev/project-e88d1c23-e44c-4d58-8dd/om-app-repo/frontend-image
+  BACKEND_IMAGE: us-central1-docker.pkg.dev/project-e88d1c23-e44c-4d58-8dd/om-app-repo/backend-image
   CLUSTER_NAME: gke-cluster
   CLUSTER_LOCATION: us-central1-a
   K8S_PATH: kubernetes
@@ -43,7 +43,7 @@ jobs:
         run: |
           echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
-      - name: Generate version.json
+      - name: Generate version.json (For Frontend)
         run: |
           cat > app/version.json <<EOF
           {
@@ -57,58 +57,50 @@ jobs:
           }
           EOF
 
-      - name: Build Docker Image
+      # --- 1. FRONTEND BUILD & PUSH ---
+      - name: Build Frontend Docker Image
         run: |
-          docker build -t $IMAGE_NAME:$SHORT_SHA .
+          docker build -t $FRONTEND_IMAGE:$SHORT_SHA .
 
-      - name: Push Docker Image
+      - name: Push Frontend Docker Image
         run: |
-          docker push $IMAGE_NAME:$SHORT_SHA
+          docker push $FRONTEND_IMAGE:$SHORT_SHA
 
+      # --- 2. BACKEND BUILD & PUSH ---
+      - name: Build Backend Docker Image
+        run: |
+          docker build -t $BACKEND_IMAGE:$SHORT_SHA ./backend
+
+      - name: Push Backend Docker Image
+        run: |
+          docker push $BACKEND_IMAGE:$SHORT_SHA
+
+      # --- 3. KUBERNETES DEPLOYMENT ---
       - name: Get GKE Credentials
         uses: google-github-actions/get-gke-credentials@v2
         with:
           cluster_name: ${{ env.CLUSTER_NAME }}
           location: ${{ env.CLUSTER_LOCATION }}
 
-      - name: Verify Cluster Connection
+      - name: Apply All K8s Manifests (Deployments, Services, Ingress)
         run: |
-          kubectl get nodes
+          kubectl apply -f $K8S_PATH/
 
-      - name: Deploy Application
+      - name: Update Container Images Globally
         run: |
-          if kubectl get deployment nginx-demo >/dev/null 2>&1; then
-            echo "Deployment exists. Updating image..."
+          # Aligned with new deployment/container name structures
+          kubectl set image deployment/frontend frontend=$FRONTEND_IMAGE:$SHORT_SHA
+          kubectl set image deployment/backend backend=$BACKEND_IMAGE:$SHORT_SHA
 
-            kubectl set image deployment/nginx-demo \
-              nginx-demo=$IMAGE_NAME:$SHORT_SHA
-
-          else
-            echo "Deployment does not exist. Creating..."
-
-            kubectl apply -f $K8S_PATH/deployment.yaml
-            kubectl apply -f $K8S_PATH/service.yaml
-
-            kubectl set image deployment/nginx-demo \
-              nginx-demo=$IMAGE_NAME:$SHORT_SHA
-          fi
-
-          echo "Waiting for rollout..."
-          kubectl rollout status deployment/nginx-demo --timeout=180s
-      
-      - name: Show version.json
+      - name: Wait for Rollout Status
         run: |
-          cat app/version.json
-
-      - name: Verify Running Image
+          echo "Checking Frontend status..."
+          kubectl rollout status deployment/frontend --timeout=120s
+          echo "Checking Backend status..."
+          kubectl rollout status deployment/backend --timeout=120s
+          
+      - name: Show Final Live Resources
         run: |
-          echo "Current Image:"
-          kubectl get deployment nginx-demo \
-            -o=jsonpath='{.spec.template.spec.containers[0].image}'
-          echo ""
-
-      - name: Verify Deployment
-        run: |
-          kubectl get deployment nginx-demo
           kubectl get pods -o wide
           kubectl get svc
+          kubectl get ingress

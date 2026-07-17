@@ -1,15 +1,11 @@
 apiVersion: v1
 kind: Service
-
 metadata:
-  name: nginx-service
-
+  name: frontend-service  # Service name aligned
 spec:
+  type: ClusterIP
   selector:
-    app: nginx-demo
-
-  type: LoadBalancer
-
+    app: chai-frontend
   ports:
   - port: 80
     targetPort: 80

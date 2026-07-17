@@ -1,11 +1,4 @@
 FROM nginx:alpine
-
-WORKDIR /usr/share/nginx/html
-
-COPY app/ .
-
+COPY app/ /usr/share/nginx/html/
 EXPOSE 80
-
-HEALTHCHECK CMD wget --spider http://localhost || exit 1
-
-CMD ["nginx","-g","daemon off;"]
+CMD ["nginx", "-g", "daemon off;"]
