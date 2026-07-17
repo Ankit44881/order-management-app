@@ -47,175 +47,20 @@
                 Brewing Conversations, One Cup at a Time ☕
             </p>
 
-            <a href="#" class="btn">
-                Explore Menu
+            <a href="menu.html" class="btn">
+                    Explore Menu
             </a>
 
         </section>
 
-        <!-- =========================
-                MENU
-        ========================== -->
+        <div class="navigation-buttons">
 
-        <section class="menu-section">
+    <a href="menu.html" class="btn">
+        🍔 View Menu
+    </a>
 
-            <h2>Our Specialities</h2>
+    <a href="deployment.html" class="btn">
+        🚀 Deployment Details
+    </a>
 
-            <div class="cards">
-
-                <div class="card">
-                    <div class="emoji">☕</div>
-                    <h3>Tea</h3>
-                    <p>Premium Masala Tea</p>
-                    <span>₹15</span>
-                </div>
-
-                <div class="card">
-                    <div class="emoji">🥟</div>
-                    <h3>Momos</h3>
-                    <p>Steamed & Fried</p>
-                    <span>₹40</span>
-                </div>
-
-                <div class="card">
-                    <div class="emoji">🍔</div>
-                    <h3>Burger</h3>
-                    <p>Fresh Veg Burger</p>
-                    <span>₹60</span>
-                </div>
-
-                <div class="card">
-                    <div class="emoji">🍝</div>
-                    <h3>Pasta</h3>
-                    <p>White & Red Sauce</p>
-                    <span>₹90</span>
-                </div>
-
-                <div class="card">
-                    <div class="emoji">🍜</div>
-                    <h3>Maggi</h3>
-                    <p>Classic & Cheese</p>
-                    <span>₹30</span>
-                </div>
-
-                <div class="card">
-                    <div class="emoji">🥪</div>
-                    <h3>Sandwich</h3>
-                    <p>Veg Grilled Sandwich</p>
-                    <span>₹70</span>
-                </div>
-
-            </div>
-
-        </section>
-
-        <!-- =========================
-                DEVOPS
-        ========================== -->
-
-        <section class="devops">
-
-            <h2>Application Deployment</h2>
-
-            <div class="info">
-
-                <div class="box">
-                    <h3>🚀 Platform</h3>
-                    <p>Google Kubernetes Engine</p>
-                </div>
-
-                <div class="box">
-                    <h3>⚙️ CI/CD</h3>
-                    <p>GitHub Actions</p>
-                </div>
-
-                <div class="box">
-                    <h3>🐳 Container</h3>
-                    <p>Docker</p>
-                </div>
-
-                <div class="box">
-                    <h3>📦 Registry</h3>
-                    <p>Artifact Registry</p>
-                </div>
-
-            </div>
-
-        </section>
-
-        <!-- =========================
-            DEPLOYMENT INFO
-        ========================== -->
-
-        <section class="deployment-info">
-
-            <h2>Live Deployment Information</h2>
-
-            <div class="deploy-card">
-
-                <p><strong>Application :</strong> <span id="app">Loading...</span></p>
-
-                <p><strong>Version :</strong> <span id="version">Loading...</span></p>
-
-                <p><strong>Docker Image :</strong> <span id="imageTag">Loading...</span></p>
-
-                <p><strong>Git Commit :</strong> <span id="commit">Loading...</span></p>
-
-                <p><strong>Environment :</strong> <span id="environment">Loading...</span></p>
-
-                <p><strong>Cluster :</strong> <span id="cluster">Loading...</span></p>
-
-                <p><strong>Deployment Time :</strong> <span id="deployedAt">Loading...</span></p>
-
-            </div>
-
-        </section>
-
-        <!-- =========================
-                FOOTER
-        ========================== -->
-
-        <footer>
-
-            ❤️ Made with Love by Chai Politics
-
-        </footer>
-
-    </div>
-
-    <!-- =========================
-            VERSION SCRIPT
-    ========================== -->
-
-    <script>
-
-        fetch("version.json")
-            .then(response => response.json())
-            .then(data => {
-
-                document.getElementById("app").innerText = data.application;
-                document.getElementById("version").innerText = data.version;
-                document.getElementById("imageTag").innerText = data.imageTag;
-                document.getElementById("commit").innerText = data.commit;
-                document.getElementById("environment").innerText = data.environment;
-                document.getElementById("cluster").innerText = data.cluster;
-                document.getElementById("deployedAt").innerText = data.deployedAt;
-
-            })
-            .catch(() => {
-
-                document.getElementById("app").innerText = "Unavailable";
-                document.getElementById("version").innerText = "Unavailable";
-                document.getElementById("imageTag").innerText = "Unavailable";
-                document.getElementById("commit").innerText = "Unavailable";
-                document.getElementById("environment").innerText = "Unavailable";
-                document.getElementById("cluster").innerText = "Unavailable";
-                document.getElementById("deployedAt").innerText = "Unavailable";
-
-            });
-
-    </script>
-
-</body>
-
-</html>
+</div>

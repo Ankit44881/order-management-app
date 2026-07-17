@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Deployment Details</title>
+
+    <link rel="stylesheet" href="css/style.css">
+
+</head>
+
+<body>
+
+    <!-- =========================
+            NAVBAR
+    ========================== -->
+
+    <nav>
+
+        <div class="logo">
+
+            <img src="images/logo.jpeg" alt="Chai Politics Logo">
+
+            <span>CHAI POLITICS</span>
+
+        </div>
+
+        <ul>
+
+            <li><a href="index.html">Home</a></li>
+            <li><a href="menu.html">Menu</a></li>
+
+        </ul>
+
+    </nav>
+
+    <!-- =========================
+        DEPLOYMENT INFORMATION
+    ========================== -->
+
+    <div class="container">
+
+        <section class="deployment-info">
+
+            <h2>Deployment Information</h2>
+
+            <div class="deploy-card">
+
+                <p><strong>Application:</strong> <span id="app"></span></p>
+
+                <p><strong>Version:</strong> <span id="version"></span></p>
+
+                <p><strong>Image Tag:</strong> <span id="imageTag"></span></p>
+
+                <p><strong>Commit:</strong> <span id="commit"></span></p>
+
+                <p><strong>Environment:</strong> <span id="environment"></span></p>
+
+                <p><strong>Cluster:</strong> <span id="cluster"></span></p>
+
+                <p><strong>Deployed At:</strong> <span id="deployedAt"></span></p>
+
+            </div>
+
+        </section>
+
+    </div>
+
+    <!-- =========================
+            LOAD VERSION INFO
+    ========================== -->
+
+    <script>
+
+        fetch("version.json")
+            .then(response => response.json())
+            .then(data => {
+
+                document.getElementById("app").innerText = data.application;
+                document.getElementById("version").innerText = data.version;
+                document.getElementById("imageTag").innerText = data.imageTag;
+                document.getElementById("commit").innerText = data.commit;
+                document.getElementById("environment").innerText = data.environment;
+                document.getElementById("cluster").innerText = data.cluster;
+                document.getElementById("deployedAt").innerText = data.deployedAt;
+
+            })
+            .catch(error => {
+
+                console.error("Unable to load version.json", error);
+
+            });
+
+    </script>
+
+</body>
+
+</html>
