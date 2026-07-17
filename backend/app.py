@@ -6,7 +6,7 @@ app = Flask(__name__)
 # Menu Data
 # -------------------------
 menu = [
-    {"name": "Masala Tea", "price": 15, "category": "tea", "emoji": "☕", "description": "Fresh Indian Masala Tea"},
+    {"name": "Masala Tea", "price": 20, "category": "tea", "emoji": "☕", "description": "Fresh Indian Masala Tea"},
     {"name": "Ginger Tea", "price": 20, "category": "tea", "emoji": "🫖", "description": "Hot Adrak Chai"},
     {"name": "Veg Momos", "price": 40, "category": "Momos", "emoji": "🥟", "description": "Steamed / Fried"},
     {"name": "Paneer Momos", "price": 60, "category": "Momos", "emoji": "🧀", "description": "Cheesy Paneer Filling"},
