@@ -5,14 +5,16 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 app = Flask(__name__)
+
 # Constants
 ERR_DATABASE = "Database error"
 
 # Security Fix: Dynamic Environment-Driven CORS
-allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
+allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "*")
 origins_list = [origin.strip() for origin in allowed_origins_raw.split(",") if origin.strip()]
 
 CORS(app, resources={r"/api/*": {"origins": origins_list}})
+
 # -------------------------
 # Helper Functions & Validation
 # -------------------------
@@ -44,10 +46,11 @@ menu = [
 # -------------------------
 def get_db_connection():
     return mysql.connector.connect(
-        host=os.environ.get('DB_HOST', 'mysql-0.mysql-service'),
-        user=os.environ.get('DB_USER'),
-        password=os.environ.get('DB_PASSWORD'),
-        database=os.environ.get('DB_NAME')
+        host=os.environ.get('DB_HOST', 'mysql-service'),
+        user=os.environ.get('DB_USER', 'chai_admin'),
+        password=os.environ.get('DB_PASSWORD', 'UserPassword123'),
+        database=os.environ.get('DB_NAME', 'chaipolitics_db'),
+        connect_timeout=5
     )
 
 # -------------------------
@@ -90,7 +93,7 @@ def init_db():
     except Exception as e:
         print(f"Schema Initialization Warning (will retry on query execution): {str(e)}", flush=True)
 
-# Run schema setup on backend launch
+# Safe schema initialization attempt on backend load
 init_db()
 
 # -------------------------
@@ -99,11 +102,12 @@ init_db()
 @app.route("/")
 @app.route("/health")
 def health():
-    return jsonify({"status": "healthy"}), 200
+    """Endpoint used by GKE Ingress and Kubernetes Readiness/Liveness Probes"""
+    return jsonify({"status": "healthy", "service": "chai-politics-backend"}), 200
 
 @app.route("/api/menu")
 def get_menu():
-    return jsonify(menu)
+    return jsonify(menu), 200
 
 @app.route("/api/version")
 def version():
@@ -111,7 +115,7 @@ def version():
         "application": "Chai Politics",
         "version": "1.0.0",
         "environment": "Production"
-    })
+    }), 200
 
 # -------------------------
 # User Authentication APIs
@@ -294,8 +298,8 @@ def clear_cart(phone):
             conn.close()
 
 if __name__ == '__main__':
-    # Environment variable se host read karo, default 127.0.0.1 rakho
-    host = os.getenv('HOST', '127.0.0.1')
+    # Docker/K8s ke liye default host 0.0.0.0 par bind karo
+    host = os.getenv('HOST', '0.0.0.0')
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', 'False').lower() in ['true', '1']
     
