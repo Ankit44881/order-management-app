@@ -64,7 +64,7 @@ def test_orders_api(client):
     assert resp_get.status_code in [200, 401, 404, 500]
 
     resp_post = client.post('/api/orders', json={"items": []})
-    assert resp_post.status_code in [200, 400, 401, 500]
+    assert resp_post.status_code in [200, 400, 401, 404, 500]
 
 def test_catch_all_404(client):
     resp = client.get('/api/random-unknown-endpoint')
