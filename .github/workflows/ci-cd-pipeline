@@ -1,0 +1,150 @@
+name: DevSecOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  GCP_PROJECT_ID: "project-e88d1c23-e44c-4d58-8dd"
+  GKE_CLUSTER: "gke-cluster"
+  GKE_LOCATION: "us-central1-a"
+  # Dynamic Image Name format using GitHub SHA
+  FRONTEND_IMAGE: "${{ secrets.DOCKER_HUB_USERNAME }}/chai-politics-frontend"
+  BACKEND_IMAGE: "${{ secrets.DOCKER_HUB_USERNAME }}/chai-politics-backend"
+
+jobs:
+  devsecops-pipeline:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write  # Needed for GCP Workload Identity Federation
+
+    steps:
+      # ---------------------------------------------------------
+      # 0. CHECKOUT CODE
+      # ---------------------------------------------------------
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # ---------------------------------------------------------
+      # 1. AUTOMATED UNIT TESTS & COVERAGE REPORT
+      # ---------------------------------------------------------
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Run Unit Tests & Generate Coverage
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt pytest pytest-cov
+          pytest backend/tests/ --cov=backend --cov-report=xml:coverage.xml
+
+      # ---------------------------------------------------------
+      # 2. SONARCLOUD SAST SCAN
+      # ---------------------------------------------------------
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      # ---------------------------------------------------------
+      # 3. FRONTEND: Generate Dynamic version.json
+      # ---------------------------------------------------------
+      - name: Generate Dynamic version.json
+        run: |
+          # Calculate IST Time (+5:30)
+          IST_TIME=$(python3 -c "from datetime import datetime, timezone, timedelta; print((datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %I:%M:%S %p IST'))")
+          SHORT_SHA="${GITHUB_SHA::7}"
+
+          cat > ./frontend/version.json <<EOF
+          {
+            "application": "Chai Politics",
+            "version": "1.0.${{ github.run_number }}",
+            "imageTag": "${SHORT_SHA}",
+            "commit": "${SHORT_SHA}",
+            "environment": "Production",
+            "cluster": "${{ env.GKE_CLUSTER }}",
+            "deployedAt": "${IST_TIME}"
+          }
+          EOF
+          echo "Generated version.json:"
+          cat ./frontend/version.json
+
+      # ---------------------------------------------------------
+      # 4. BUILD & PUSH DOCKER IMAGES (Docker Hub)
+      # ---------------------------------------------------------
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build & Push Frontend Image
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          docker build -t ${{ env.FRONTEND_IMAGE }}:${SHORT_SHA} ./frontend
+          docker push ${{ env.FRONTEND_IMAGE }}:${SHORT_SHA}
+
+      - name: Build & Push Backend Image
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          docker build -t ${{ env.BACKEND_IMAGE }}:${SHORT_SHA} ./backend
+          docker push ${{ env.BACKEND_IMAGE }}:${SHORT_SHA}
+
+      # ---------------------------------------------------------
+      # 5. AUTHENTICATE TO GCP VIA WIF & DEPLOY TO GKE
+      # ---------------------------------------------------------
+      - name: Authenticate to GCP via Workload Identity Federation
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_WIF_SA }}
+
+      - name: Set up GKE Credentials & kubectl
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          location: ${{ env.GKE_LOCATION }}
+
+      - name: Deploy & Manage Kubernetes Stateful Infrastructure
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+
+          # 1. Apply Kubernetes Manifests
+          kubectl apply -f kubernetes/ --recursive
+
+          # 2. Wait for MySQL StatefulSet readiness
+          echo "=== WAITING FOR MYSQL STATEFULSET ==="
+          kubectl rollout status statefulset/mysql --timeout=180s
+
+          # 3. Auto-initialize Database Schema if needed
+          echo "=== CHECKING & INITIALIZING DATABASE SCHEMA ==="
+          kubectl exec -i mysql-0 -- mysql -u chai_admin -pUserPassword123 chaipolitics_db < database/schema.sql || true
+
+          # 4. Update Deployments with new container images
+          kubectl set image deployment/frontend frontend=${{ env.FRONTEND_IMAGE }}:${SHORT_SHA}
+          kubectl set image deployment/backend backend=${{ env.BACKEND_IMAGE }}:${SHORT_SHA}
+
+          # 5. Wait for App Rollouts to complete
+          kubectl rollout status deployment/frontend --timeout=120s
+          kubectl rollout status deployment/backend --timeout=120s
+
+          echo "------------------------------------------"
+          echo "=== CURRENTLY RUNNING DEPLOYMENT IMAGES ==="
+          echo "Frontend Image: $(kubectl get deployment frontend -o jsonpath='{.spec.template.spec.containers[0].image}')"
+          echo "Backend Image:  $(kubectl get deployment backend -o jsonpath='{.spec.template.spec.containers[0].image}')"
+          echo "------------------------------------------"
+
+          # 6. Print Live Resources Status
+          echo "=== LIVE PODS ==="
+          kubectl get pods -o wide
+          echo "=== LIVE PVC & STATEFULSETS ==="
+          kubectl get pvc,statefulset
+          echo "=== LIVE SERVICES & INGRESS ==="
+          kubectl get svc,ingress
