@@ -15,7 +15,9 @@ def client():
 def test_health_check(client):
     response = client.get('/health')
     assert response.status_code == 200
-    assert response.get_json() == {"status": "healthy"}
+    data = response.get_json()
+    assert data["status"] == "healthy"
+    assert data["service"] == "chai-politics-backend"
 
 def test_indian_phone_validation():
     assert is_valid_indian_phone("9876543210") is True
