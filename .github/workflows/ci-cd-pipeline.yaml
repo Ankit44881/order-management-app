@@ -47,13 +47,15 @@ jobs:
           pytest backend/tests/ --cov=backend --cov-report=xml:coverage.xml
 
       # ---------------------------------------------------------
-      # 2. SONARCLOUD SAST SCAN
+      # 2. SELF-HOSTED SONARQUBE SAST SCAN & QUALITY GATE CHECK
       # ---------------------------------------------------------
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+      - name: SonarQube Scan & Quality Gate
+        uses: SonarSource/sonarqube-scan-action@v5.0.0
+        with:
+          fetch-quality-gate: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
       # ---------------------------------------------------------
       # 3. FRONTEND: Generate Dynamic version.json
