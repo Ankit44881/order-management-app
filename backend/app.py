@@ -5,6 +5,8 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 app = Flask(__name__)
+# Constants
+ERR_DATABASE = "Database error"
 
 # Security Fix: Dynamic Environment-Driven CORS
 allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
@@ -145,7 +147,7 @@ def login_user():
 
     except Exception as e:
         print(f"Login Error: {str(e)}", flush=True)
-        return jsonify({"error": "Database error", "details": str(e)}), 500
+        return jsonify({"error": ERR_DATABASE, "details": str(e)}), 500
     finally:
         if conn and conn.is_connected():
             conn.close()
@@ -190,7 +192,7 @@ def register_user():
 
     except Exception as e:
         print(f"Register Error: {str(e)}", flush=True)
-        return jsonify({"error": "Database error", "details": str(e)}), 500
+        return jsonify({"error": ERR_DATABASE, "details": str(e)}), 500
     finally:
         if conn and conn.is_connected():
             conn.close()
@@ -235,7 +237,7 @@ def add_to_cart():
 
     except Exception as e:
         print(f"Add Cart Error: {str(e)}", flush=True)
-        return jsonify({"error": "Database error", "details": str(e)}), 500
+        return jsonify({"error": ERR_DATABASE, "details": str(e)}), 500
     finally:
         if conn and conn.is_connected():
             conn.close()
@@ -261,7 +263,7 @@ def get_cart_by_phone(phone):
 
     except Exception as e:
         print(f"Get Cart Error: {str(e)}", flush=True)
-        return jsonify({"error": "Database error", "details": str(e)}), 500
+        return jsonify({"error": ERR_DATABASE, "details": str(e)}), 500
     finally:
         if conn and conn.is_connected():
             conn.close()
@@ -286,7 +288,7 @@ def clear_cart(phone):
 
     except Exception as e:
         print(f"Clear Cart Error: {str(e)}", flush=True)
-        return jsonify({"error": "Database error", "details": str(e)}), 500
+        return jsonify({"error": ERR_DATABASE, "details": str(e)}), 500
     finally:
         if conn and conn.is_connected():
             conn.close()
