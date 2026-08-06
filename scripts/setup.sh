@@ -7,7 +7,7 @@ set -e
 # -----------------------------
 PROJECT_ID="project-e88d1c23-e44c-4d58-8dd"
 REGION="us-central1"
-ZONE="us-central1-a"
+ZONE="us-central1-b"
 
 CLUSTER_NAME="gke-cluster"
 REPOSITORY_NAME="om-app-repo"
@@ -48,6 +48,7 @@ echo "Creating GKE Cluster"
 echo "====================================="
 if ! gcloud container clusters describe $CLUSTER_NAME --zone=$ZONE >/dev/null 2>&1; then
     gcloud container clusters create $CLUSTER_NAME \
+        --machine-type="e2-medium"
         --zone=$ZONE \
         --num-nodes=1
     echo "✅ GKE Cluster created."

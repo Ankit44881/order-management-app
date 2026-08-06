@@ -10,7 +10,7 @@ env:
   GAR_LOCATION: "us-central1"
   GAR_REPOSITORY: "om-app-repo"
   GKE_CLUSTER: "gke-cluster"
-  GKE_LOCATION: "us-central1-a"
+  GKE_LOCATION: "us-central1-b"
   
   # GCP Artifact Registry Image Base URLs
   FRONTEND_IMAGE: "us-central1-docker.pkg.dev/project-e88d1c23-e44c-4d58-8dd/om-app-repo/chai-politics-frontend"
