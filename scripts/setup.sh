@@ -48,7 +48,7 @@ echo "Creating GKE Cluster"
 echo "====================================="
 if ! gcloud container clusters describe $CLUSTER_NAME --zone=$ZONE >/dev/null 2>&1; then
     gcloud container clusters create $CLUSTER_NAME \
-        --machine-type="e2-medium"
+        --machine-type="e2-medium" \
         --zone=$ZONE \
         --num-nodes=1
     echo "✅ GKE Cluster created."
