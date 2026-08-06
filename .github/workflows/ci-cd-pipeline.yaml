@@ -7,11 +7,14 @@ on:
 
 env:
   GCP_PROJECT_ID: "project-e88d1c23-e44c-4d58-8dd"
+  GAR_LOCATION: "us-central1"
+  GAR_REPOSITORY: "om-app-repo"
   GKE_CLUSTER: "gke-cluster"
   GKE_LOCATION: "us-central1-a"
-  # Dynamic Image Name format using GitHub SHA
-  FRONTEND_IMAGE: "${{ secrets.DOCKER_HUB_USERNAME }}/chai-politics-frontend"
-  BACKEND_IMAGE: "${{ secrets.DOCKER_HUB_USERNAME }}/chai-politics-backend"
+  
+  # GCP Artifact Registry Image Base URLs
+  FRONTEND_IMAGE: "us-central1-docker.pkg.dev/project-e88d1c23-e44c-4d58-8dd/om-app-repo/chai-politics-frontend"
+  BACKEND_IMAGE: "us-central1-docker.pkg.dev/project-e88d1c23-e44c-4d58-8dd/om-app-repo/chai-politics-backend"
 
 jobs:
   devsecops-pipeline:
@@ -23,12 +26,15 @@ jobs:
 
     steps:
       # ---------------------------------------------------------
-      # 0. CHECKOUT CODE
+      # 0. CHECKOUT CODE & CALCULATE SHORT SHA
       # ---------------------------------------------------------
       - name: Checkout Repository
         uses: actions/checkout@v4
         with: 
           fetch-depth: 0
+
+      - name: Set Short SHA Variable
+        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
       # ---------------------------------------------------------
       # 1. AUTOMATED UNIT TESTS & COVERAGE REPORT
@@ -51,7 +57,6 @@ jobs:
       # ---------------------------------------------------------
       - name: SonarQube Scan & Quality Gate
         uses: SonarSource/sonarqube-scan-action@v5.0.0
-      
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -61,16 +66,14 @@ jobs:
       # ---------------------------------------------------------
       - name: Generate Dynamic version.json
         run: |
-          # Calculate IST Time (+5:30)
           IST_TIME=$(python3 -c "from datetime import datetime, timezone, timedelta; print((datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %I:%M:%S %p IST'))")
-          SHORT_SHA="${GITHUB_SHA::7}"
 
           cat > ./frontend/version.json <<EOF
           {
             "application": "Chai Politics",
             "version": "1.0.${{ github.run_number }}",
-            "imageTag": "${SHORT_SHA}",
-            "commit": "${SHORT_SHA}",
+            "imageTag": "${{ env.SHORT_SHA }}",
+            "commit": "${{ env.SHORT_SHA }}",
             "environment": "Production",
             "cluster": "${{ env.GKE_CLUSTER }}",
             "deployedAt": "${IST_TIME}"
@@ -80,28 +83,7 @@ jobs:
           cat ./frontend/version.json
 
       # ---------------------------------------------------------
-      # 4. BUILD & PUSH DOCKER IMAGES (Docker Hub)
-      # ---------------------------------------------------------
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-
-      - name: Build & Push Frontend Image
-        run: |
-          SHORT_SHA="${GITHUB_SHA::7}"
-          docker build -t ${{ env.FRONTEND_IMAGE }}:${SHORT_SHA} ./frontend
-          docker push ${{ env.FRONTEND_IMAGE }}:${SHORT_SHA}
-
-      - name: Build & Push Backend Image
-        run: |
-          SHORT_SHA="${GITHUB_SHA::7}"
-          docker build -t ${{ env.BACKEND_IMAGE }}:${SHORT_SHA} ./backend
-          docker push ${{ env.BACKEND_IMAGE }}:${SHORT_SHA}
-
-      # ---------------------------------------------------------
-      # 5. AUTHENTICATE TO GCP VIA WIF & DEPLOY TO GKE
+      # 4. AUTHENTICATE TO GCP VIA WORKLOAD IDENTITY FEDERATION
       # ---------------------------------------------------------
       - name: Authenticate to GCP via Workload Identity Federation
         uses: google-github-actions/auth@v2
@@ -109,6 +91,52 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
           service_account: ${{ secrets.GCP_WIF_SA }}
 
+      - name: Set up Cloud SDK & Docker Auth for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev --quiet
+
+      # ---------------------------------------------------------
+      # 5. BUILD DOCKER IMAGES USING SHORT SHA
+      # ---------------------------------------------------------
+      - name: Build Frontend & Backend Images
+        run: |
+          docker build -t ${{ env.FRONTEND_IMAGE }}:${{ env.SHORT_SHA }} ./frontend
+          docker build -t ${{ env.BACKEND_IMAGE }}:${{ env.SHORT_SHA }} ./backend
+
+      # ---------------------------------------------------------
+      # 6. TRIVY IMAGES SCANNING USING SHORT SHA
+      # ---------------------------------------------------------
+      - name: Trivy Scan - Frontend Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.FRONTEND_IMAGE }}:${{ env.SHORT_SHA }}'
+          format: 'table'
+          exit-code: '1'             # Fail pipeline if critical vulnerabilities are found
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
+
+      - name: Trivy Scan - Backend Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.BACKEND_IMAGE }}:${{ env.SHORT_SHA }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
+
+      # ---------------------------------------------------------
+      # 7. PUSH DOCKER IMAGES TO GCP REGISTRY USING SHORT SHA
+      # ---------------------------------------------------------
+      - name: Push Frontend & Backend Image
+        run: |
+          docker push ${{ env.FRONTEND_IMAGE }}:${{ env.SHORT_SHA }}
+          docker push ${{ env.BACKEND_IMAGE }}:${{ env.SHORT_SHA }}
+
+      # ---------------------------------------------------------
+      # 8. DEPLOY TO GKE USING SHORT SHA
+      # ---------------------------------------------------------
       - name: Set up GKE Credentials & kubectl
         uses: google-github-actions/get-gke-credentials@v2
         with:
@@ -117,8 +145,6 @@ jobs:
 
       - name: Deploy & Manage Kubernetes Stateful Infrastructure
         run: |
-          SHORT_SHA="${GITHUB_SHA::7}"
-
           # 1. Apply Kubernetes Manifests
           kubectl apply -f kubernetes/ --recursive
 
@@ -130,9 +156,9 @@ jobs:
           echo "=== CHECKING & INITIALIZING DATABASE SCHEMA ==="
           kubectl exec -i mysql-0 -- mysql -u chai_admin -pUserPassword123 chaipolitics_db < database/schema.sql || true
 
-          # 4. Update Deployments with new container images
-          kubectl set image deployment/frontend frontend=${{ env.FRONTEND_IMAGE }}:${SHORT_SHA}
-          kubectl set image deployment/backend backend=${{ env.BACKEND_IMAGE }}:${SHORT_SHA}
+          # 4. Update Deployments with new container images from Artifact Registry
+          kubectl set image deployment/frontend frontend=${{ env.FRONTEND_IMAGE }}:${{ env.SHORT_SHA }}
+          kubectl set image deployment/backend backend=${{ env.BACKEND_IMAGE }}:${{ env.SHORT_SHA }}
 
           # 5. Wait for App Rollouts to complete
           kubectl rollout status deployment/frontend --timeout=120s
