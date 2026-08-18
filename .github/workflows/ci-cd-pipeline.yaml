@@ -48,7 +48,7 @@ jobs:
           pip install --upgrade pip
           pip install -r backend/requirements.txt pytest pytest-cov
           pytest backend/tests/ --cov=backend --cov-report=xml:coverage.xml
-          
+
       # ---------------------------------------------------------
       # 2. SELF-HOSTED SONARQUBE SAST SCAN & QUALITY GATE CHECK
       # ---------------------------------------------------------
@@ -111,7 +111,7 @@ jobs:
           exit-code: '1'             # Fail pipeline if critical vulnerabilities are found
           ignore-unfixed: true
           vuln-type: 'os,library'
-          severity: 'CRITICAL'
+          severity: 'CRITICAL,HIGH'
 
       - name: Trivy Scan - Backend Image
         uses: aquasecurity/trivy-action@master
@@ -121,7 +121,7 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
-          severity: 'CRITICAL'
+          severity: 'CRITICAL,HIGH'
 
       # ---------------------------------------------------------
       # 7. PUSH DOCKER IMAGES TO GCP REGISTRY USING SHORT SHA
