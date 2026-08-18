@@ -23,6 +23,7 @@ jobs:
     permissions:
       contents: read
       id-token: write  # Needed for GCP Workload Identity Federation
+      security-events: write  # important for SARIF upload 
 
     steps:
       # ---------------------------------------------------------
@@ -101,28 +102,41 @@ jobs:
           docker build -t ${{ env.BACKEND_IMAGE }}:${{ env.SHORT_SHA }} ./backend
 
       # ---------------------------------------------------------
-      # 6. TRIVY IMAGES SCANNING USING SHORT SHA
+      # 6. TRIVY IMAGES SCANNING USING SHORT SHA (SARIF & GITHUB SECURITY)
       # ---------------------------------------------------------
-      - name: Trivy Scan - Frontend Image
+      - name: Trivy Scan - Frontend Image (SARIF)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: '${{ env.FRONTEND_IMAGE }}:${{ env.SHORT_SHA }}'
-          format: 'table'
-          exit-code: '1'             # Fail pipeline if critical vulnerabilities are found
+          format: 'sarif'
+          output: 'trivy-frontend.sarif'
+          severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
           vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
 
-      - name: Trivy Scan - Backend Image
+      - name: Trivy Scan - Backend Image (SARIF)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: '${{ env.BACKEND_IMAGE }}:${{ env.SHORT_SHA }}'
-          format: 'table'
-          exit-code: '1'
+          format: 'sarif'
+          output: 'trivy-backend.sarif'
+          severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
           vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
 
+      - name: Upload Frontend Scan Results to GitHub Security Tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-frontend.sarif'
+          category: 'frontend-image'
+
+      - name: Upload Backend Scan Results to GitHub Security Tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-backend.sarif'
+          category: 'backend-image'
       # ---------------------------------------------------------
       # 7. PUSH DOCKER IMAGES TO GCP REGISTRY USING SHORT SHA
       # ---------------------------------------------------------
